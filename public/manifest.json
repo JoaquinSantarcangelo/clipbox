@@ -1,0 +1,16 @@
+{
+  "name": "ClipBox",
+  "short_name": "ClipBox",
+  "description": "Cross-device clipboard — paste on one, grab on another",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'><rect x='8' y='2' width='8' height='4' rx='1'/><rect x='4' y='4' width='16' height='18' rx='2'/></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

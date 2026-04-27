@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>CLIPBOX</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'><rect x='8' y='2' width='8' height='4' rx='1'/><rect x='4' y='4' width='16' height='18' rx='2'/></svg>" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@700&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* --- Reset & Tokens --- */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #000000;
+      --surface: #111111;
+      --border: #222222;
+      --border-hover: #333333;
+      --text-1: #FFFFFF;
+      --text-2: #E8E8E8;
+      --text-3: #999999;
+      --text-4: #666666;
+      --accent-red: #D71921;
+      --accent-red-hover: #FF2D36;
+      --pin-active: #E8E8E8;
+      --pin-inactive: #444444;
+      --radius: 12px;
+      --font-body: 'Space Grotesk', sans-serif;
+      --font-mono: 'Space Mono', monospace;
+      --font-hero: 'Doto', sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #F5F5F5;
+      --surface: #FFFFFF;
+      --border: #E0E0E0;
+      --border-hover: #CCCCCC;
+      --text-1: #111111;
+      --text-2: #333333;
+      --text-3: #777777;
+      --text-4: #AAAAAA;
+      --pin-active: #333333;
+      --pin-inactive: #CCCCCC;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      min-height: 100dvh;
+    }
+
+    /* --- Layout --- */
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    /* --- Header --- */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .hero-title {
+      font-family: var(--font-hero);
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--text-1);
+      line-height: 1;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+    }
+
+    .device-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    /* --- Header Buttons --- */
+    .header-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-3);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .header-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text-2);
+    }
+    .header-btn.active {
+      border-color: var(--text-3);
+      color: var(--text-1);
+    }
+
+    /* --- QR Overlay --- */
+    .qr-section {
+      display: none;
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      animation: fadeIn 0.2s ease-out;
+    }
+    .qr-section.visible { display: block; }
+    .qr-section img {
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 12px;
+      display: block;
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+    .qr-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      margin-bottom: 8px;
+    }
+    .qr-url {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-3);
+      word-break: break-all;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .qr-url:hover { color: var(--text-1); }
+
+    /* --- Input Area --- */
+    .input-area {
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .input-area textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-1);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 12px 0;
+      resize: vertical;
+      min-height: 56px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-area textarea::placeholder {
+      color: var(--text-4);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+    }
+    .input-area textarea:focus {
+      border-color: var(--text-3);
+    }
+
+    /* --- Drop Zone --- */
+    .drop-zone-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      border: 2px dashed var(--text-3);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.03);
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .drop-zone-overlay.active {
+      display: flex;
+    }
+    .drop-zone-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      background: var(--surface);
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+
+    [data-theme="light"] .drop-zone-overlay {
+      background: rgba(0,0,0,0.03);
+    }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .char-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-4);
+      letter-spacing: 0.05em;
+    }
+
+    .save-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    .kbd-hint {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-4);
+      letter-spacing: 0.05em;
+      opacity: 0.6;
+    }
+
+    /* --- Upload Button --- */
+    .upload-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-4);
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .upload-btn:hover { border-color: var(--border-hover); color: var(--text-2); }
+
+    /* --- Buttons --- */
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+      padding: 6px 20px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      border-color: var(--text-3);
+      color: var(--text-1);
+    }
+    .btn-primary {
+      border-color: var(--text-1);
+      color: var(--text-1);
+    }
+    .btn-primary:hover {
+      background: var(--text-1);
+      color: var(--bg);
+    }
+    .btn-danger {
+      border-color: transparent;
+      color: var(--text-4);
+    }
+    .btn-danger:hover {
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+    .btn-sm {
+      font-size: 9px;
+      padding: 4px 12px;
+    }
+
+    .btn-clear {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .btn-clear:hover { color: var(--accent-red); }
+
+    /* --- Search --- */
+    .search-bar {
+      margin-bottom: 24px;
+    }
+    .search-bar input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-1);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 0;
+      outline: none;
+      letter-spacing: 0.05em;
+      transition: border-color 0.15s;
+    }
+    .search-bar input::placeholder {
+      color: var(--text-4);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .search-bar input:focus {
+      border-color: var(--text-3);
+    }
+
+    /* --- Section Labels --- */
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* --- Clip Card --- */
+    .clip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 8px;
+      transition: border-color 0.15s;
+    }
+    .clip-card.animate-in {
+      animation: fadeIn 0.2s ease-out;
+    }
+    .clip-card:hover {
+      border-color: var(--border-hover);
+    }
+    .clip-card.pending-delete {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0.5;
+      padding: 12px 16px;
+    }
+
+    .undo-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+    }
+
+    .clip-text {
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text-2);
+      word-break: break-word;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      cursor: default;
+    }
+    .clip-text.truncated {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .clip-text a {
+      color: var(--text-3);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .clip-text a:hover { color: var(--text-1); }
+
+    /* --- Color Swatch --- */
+    .color-swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      vertical-align: middle;
+      margin-right: 2px;
+      border: 1px solid rgba(128,128,128,0.3);
+    }
+
+    /* --- URL Domain Label --- */
+    .url-domain {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-4);
+      margin-left: 4px;
+      letter-spacing: 0.03em;
+    }
+
+    /* --- Code Blocks --- */
+    .code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin: 8px 0;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .clip-expand {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      margin-top: 4px;
+    }
+    .clip-expand:hover { color: var(--text-2); }
+
+    .clip-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .clip-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-4);
+      letter-spacing: 0.05em;
+      margin-right: auto;
+    }
+
+    .status-flash {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .status-flash.visible { opacity: 1; }
+
+    /* --- Image Thumbnail --- */
+    .clip-image {
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      background: var(--bg);
+    }
+    .clip-image:hover { opacity: 0.85; }
+
+    /* --- File Card --- */
+    .file-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .file-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-3);
+    }
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .file-name {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-4);
+      letter-spacing: 0.05em;
+    }
+
+    /* --- Upload Progress --- */
+    .upload-status {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      padding: 4px 0;
+      display: none;
+    }
+    .upload-status.visible { display: block; }
+
+    /* --- Inline Edit --- */
+    .edit-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--text-3);
+      border-radius: 6px;
+      color: var(--text-1);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 10px;
+      resize: vertical;
+      min-height: 60px;
+      outline: none;
+      line-height: 1.5;
+    }
+    .edit-hint {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-4);
+      margin-top: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    /* --- Image Lightbox --- */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      cursor: pointer;
+    }
+    .lightbox.open { opacity: 1; pointer-events: auto; }
+    .lightbox img {
+      max-width: 100%;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    /* --- Pin Toggle --- */
+    .pin-btn {
+      background: none;
+      border: 1px solid var(--border);
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      color: var(--pin-inactive);
+    }
+    .pin-btn:hover { border-color: var(--border-hover); color: var(--text-3); }
+    .pin-btn.active { color: var(--pin-active); border-color: var(--pin-active); }
+
+    /* --- Empty State --- */
+    .empty-state {
+      text-align: center;
+      padding: 48px 16px;
+      position: relative;
+    }
+    .empty-state::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(var(--border) 1px, transparent 1px);
+      background-size: 16px 16px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .empty-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      position: relative;
+    }
+
+    /* --- Status Bar --- */
+    .status-bar {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-4);
+      text-align: center;
+      margin-top: 32px;
+    }
+    .status-bar .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2DB82D;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status-bar .dot.disconnected { background: var(--accent-red); }
+
+    /* --- Dialog --- */
+    .dialog-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .dialog-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .dialog-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
+      max-width: 360px;
+      transform: scale(0.96) translateY(8px);
+      transition: transform 0.15s ease;
+    }
+    .dialog-overlay.open .dialog-panel {
+      transform: scale(1) translateY(0);
+    }
+
+    .dialog-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-1);
+      margin-bottom: 8px;
+    }
+
+    .dialog-message {
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--text-3);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .dialog-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 8px 20px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-3);
+    }
+    .dialog-btn:hover {
+      border-color: var(--text-3);
+      color: var(--text-1);
+    }
+    .dialog-btn-confirm {
+      border-color: var(--text-1);
+      color: var(--text-1);
+    }
+    .dialog-btn-confirm:hover {
+      background: var(--text-1);
+      color: var(--bg);
+    }
+    .dialog-btn-danger {
+      border-color: var(--accent-red);
+      color: var(--accent-red);
+    }
+    .dialog-btn-danger:hover {
+      background: var(--accent-red);
+      color: #fff;
+    }
+
+    /* --- Animations --- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes flashHighlight {
+      0%, 100% { border-color: var(--border); }
+      50% { border-color: var(--text-3); }
+    }
+    .clip-card.flash { animation: flashHighlight 0.3s ease 3; }
+
+    /* --- Responsive --- */
+    @media (max-width: 480px) {
+      .container { padding: 16px 12px 48px; }
+      .hero-title { font-size: 32px; }
+      .clip-meta { gap: 6px; }
+      .kbd-hint { display: none; }
+      .clip-image { max-height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <h1 class="hero-title">CLIPBOX</h1>
+        <p class="subtitle">Cross-device clipboard</p>
+      </div>
+      <div class="header-right">
+        <span class="device-tag" id="device-tag"></span>
+        <button class="header-btn" id="qr-toggle" title="Show QR code">QR</button>
+        <button class="header-btn" id="theme-toggle">LIGHT</button>
+      </div>
+    </header>
+
+    <!-- QR Section -->
+    <div class="qr-section" id="qr-section">
+      <img id="qr-img" alt="QR Code" />
+      <div class="qr-label">SCAN TO CONNECT</div>
+      <div class="qr-url" id="qr-url" title="Click to copy"></div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area" id="input-area">
+      <div class="drop-zone-overlay" id="drop-overlay">
+        <span class="drop-zone-label">DROP FILE HERE</span>
+      </div>
+      <textarea id="clip-input" rows="2" placeholder="Paste text, image, or drop a file..."></textarea>
+      <span class="upload-status" id="upload-status">[UPLOADING...]</span>
+      <div class="input-actions">
+        <span class="char-count" id="char-count" style="display:none"></span>
+        <div class="save-group">
+          <button class="upload-btn" id="upload-btn" title="Upload file">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </button>
+          <input type="file" id="file-input" style="display:none" />
+          <span class="kbd-hint">CTRL+ENTER</span>
+          <button class="btn btn-primary" id="add-btn">SAVE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Filter clips..." />
+    </div>
+
+    <!-- Clips -->
+    <div id="clips-container"></div>
+
+    <!-- Status -->
+    <div class="status-bar" id="status-bar">
+      <span class="dot" id="sse-dot"></span> <span id="sse-label">CONNECTING...</span>
+    </div>
+  </div>
+
+  <!-- Dialog -->
+  <div class="dialog-overlay" id="dialog-overlay">
+    <div class="dialog-panel" id="dialog-panel">
+      <div class="dialog-title" id="dialog-title"></div>
+      <div class="dialog-message" id="dialog-message"></div>
+      <div class="dialog-actions">
+        <button class="dialog-btn" id="dialog-cancel">CANCEL</button>
+        <button class="dialog-btn" id="dialog-confirm">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <img id="lightbox-img" />
+  </div>
+
+  <script>
+    // --- State ---
+    let clips = [];
+    let searchQuery = '';
+    let deviceCount = 0;
+    let connected = false;
+    let pendingDelete = null;
+    let pasteTimer = null;
+    let dialogResolver = null;
+    let editingId = null;
+    const expandedSet = new Set();
+    let renderedIds = new Set();
+
+    // --- Elements ---
+    const $ = (id) => document.getElementById(id);
+    const clipInput = $('clip-input');
+    const charCount = $('char-count');
+    const addBtn = $('add-btn');
+    const searchInput = $('search-input');
+    const container = $('clips-container');
+    const themeToggle = $('theme-toggle');
+    const deviceTag = $('device-tag');
+    const sseDot = $('sse-dot');
+    const sseLabel = $('sse-label');
+    const dialogOverlay = $('dialog-overlay');
+    const dialogTitleEl = $('dialog-title');
+    const dialogMessageEl = $('dialog-message');
+    const dialogCancelBtn = $('dialog-cancel');
+    const dialogConfirmBtn = $('dialog-confirm');
+    const inputArea = $('input-area');
+    const dropOverlay = $('drop-overlay');
+    const uploadBtn = $('upload-btn');
+    const fileInput = $('file-input');
+    const uploadStatus = $('upload-status');
+    const qrToggle = $('qr-toggle');
+    const qrSection = $('qr-section');
+    const qrImg = $('qr-img');
+    const qrUrl = $('qr-url');
+    const lightbox = $('lightbox');
+    const lightboxImg = $('lightbox-img');
+
+    // --- Dialog ---
+    function showDialog({ title, message, confirmLabel = 'CONFIRM', danger = false }) {
+      dialogTitleEl.textContent = title;
+      dialogMessageEl.textContent = message;
+      dialogConfirmBtn.textContent = confirmLabel;
+      dialogConfirmBtn.className = 'dialog-btn ' + (danger ? 'dialog-btn-danger' : 'dialog-btn-confirm');
+      dialogOverlay.classList.add('open');
+      dialogConfirmBtn.focus();
+      return new Promise(resolve => { dialogResolver = resolve; });
+    }
+
+    function closeDialog(result) {
+      if (!dialogResolver) return;
+      dialogOverlay.classList.remove('open');
+      dialogResolver(result);
+      dialogResolver = null;
+    }
+
+    dialogCancelBtn.addEventListener('click', () => closeDialog(false));
+    dialogConfirmBtn.addEventListener('click', () => closeDialog(true));
+    dialogOverlay.addEventListener('click', (e) => {
+      if (e.target === dialogOverlay) closeDialog(false);
+    });
+
+    // --- Lightbox ---
+    function openLightbox(src) {
+      lightboxImg.src = src;
+      lightbox.classList.add('open');
+    }
+
+    lightbox.addEventListener('click', () => {
+      lightbox.classList.remove('open');
+      lightboxImg.src = '';
+    });
+
+    // --- API ---
+    const API = '/api/clips';
+
+    async function fetchClips() {
+      try {
+        const res = await fetch(API);
+        clips = await res.json();
+        render();
+        updateStatusBar();
+      } catch {
+        container.innerHTML = '<div class="empty-state"><span class="empty-label">[ERROR LOADING]</span></div>';
+      }
+    }
+
+    async function addClip(autoSave = false) {
+      const text = clipInput.value.trim();
+      if (!text) return;
+      addBtn.textContent = autoSave ? '[AUTO-SAVING...]' : '[SAVING...]';
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await res.json();
+        clipInput.value = '';
+        charCount.style.display = 'none';
+        charCount.textContent = '';
+
+        if (data.duplicate) {
+          addBtn.textContent = '[DUPLICATE — MOVED TO TOP]';
+          setTimeout(() => { addBtn.textContent = 'SAVE'; }, 1500);
+        } else {
+          addBtn.textContent = autoSave ? '[AUTO-SAVED]' : '[SAVED]';
+          setTimeout(() => { addBtn.textContent = 'SAVE'; }, 800);
+        }
+      } catch {
+        addBtn.textContent = '[ERROR]';
+        setTimeout(() => { addBtn.textContent = 'SAVE'; }, 1200);
+      }
+    }
+
+    // --- File Upload ---
+    async function uploadFile(file) {
+      if (file.size > 10 * 1024 * 1024) {
+        addBtn.textContent = '[TOO LARGE — 10MB MAX]';
+        setTimeout(() => { addBtn.textContent = 'SAVE'; }, 2000);
+        return;
+      }
+
+      uploadStatus.classList.add('visible');
+      uploadStatus.textContent = `[UPLOADING ${file.name}...]`;
+
+      try {
+        const base64 = await fileToBase64(file);
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file: {
+              data: base64,
+              name: file.name,
+              mime: file.type || 'application/octet-stream',
+            },
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Upload failed');
+        }
+
+        uploadStatus.textContent = '[UPLOADED]';
+        setTimeout(() => { uploadStatus.classList.remove('visible'); }, 1000);
+      } catch (err) {
+        uploadStatus.textContent = `[ERROR: ${err.message}]`;
+        setTimeout(() => { uploadStatus.classList.remove('visible'); }, 2000);
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          // Strip data URL prefix: "data:mime;base64,"
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // --- Inline Edit ---
+    async function saveEdit(id) {
+      const textarea = document.querySelector(`.clip-card[data-id="${id}"] .edit-textarea`);
+      if (!textarea) return;
+      const newText = textarea.value.trim();
+      if (!newText) return;
+
+      try {
+        await fetch(`${API}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: newText }),
+        });
+      } catch { /* SSE will sync */ }
+      editingId = null;
+      render();
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      render();
+    }
+
+    function startEdit(id) {
+      editingId = id;
+      render();
+      const textarea = document.querySelector(`.clip-card[data-id="${id}"] .edit-textarea`);
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }
+
+    // --- Undo Delete ---
+    function executePendingDelete() {
+      if (!pendingDelete) return;
+      const { id, timer } = pendingDelete;
+      clearTimeout(timer);
+      pendingDelete = null;
+      fetch(`${API}/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
+
+    async function deleteClip(id) {
+      if (pendingDelete) executePendingDelete();
+
+      const clip = clips.find(c => c.id === id);
+      if (!clip) return;
+
+      pendingDelete = {
+        id,
+        clip,
+        timer: setTimeout(() => {
+          executePendingDelete();
+        }, 3000),
+      };
+      render();
+    }
+
+    function undoDelete() {
+      if (!pendingDelete) return;
+      clearTimeout(pendingDelete.timer);
+      pendingDelete = null;
+      render();
+    }
+
+    async function togglePin(id) {
+      try {
+        await fetch(`${API}/${id}`, { method: 'PATCH' });
+      } catch { /* SSE will sync */ }
+    }
+
+    async function copyClip(id, btn) {
+      const clip = clips.find(c => c.id === id);
+      if (!clip) return;
+
+      const textToCopy = clip.text || (clip.file ? window.location.origin + '/uploads/' + clip.file.stored : '');
+
+      let success = false;
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        success = true;
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = textToCopy;
+        ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { success = document.execCommand('copy'); } catch { /* noop */ }
+        document.body.removeChild(ta);
+      }
+
+      btn.textContent = success ? '[COPIED]' : '[FAILED]';
+      setTimeout(() => { btn.textContent = 'COPY'; }, 800);
+    }
+
+    async function clearAllUnpinned() {
+      const unpinnedCount = clips.filter(c => !c.pinned).length;
+      if (!unpinnedCount) return;
+      const confirmed = await showDialog({
+        title: 'Clear all clips',
+        message: `This will permanently delete ${unpinnedCount} unpinned clip${unpinnedCount !== 1 ? 's' : ''}. Pinned clips are safe.`,
+        confirmLabel: 'DELETE ALL',
+        danger: true,
+      });
+      if (!confirmed) return;
+      try {
+        await fetch(API, { method: 'DELETE' });
+      } catch { /* SSE will sync */ }
+    }
+
+    function downloadFile(stored, name) {
+      const a = document.createElement('a');
+      a.href = '/uploads/' + stored;
+      a.download = name;
+      a.click();
+    }
+
+    // --- Text Formatting ---
+    function formatClipText(text) {
+      let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // Code blocks
+      html = html.replace(/```\w*\n?([\s\S]*?)```/g, (_, code) => {
+        return '<pre class="code-block">' + code.replace(/\n$/, '') + '</pre>';
+      });
+
+      // Color swatches — #hex
+      html = html.replace(/(#(?:[0-9a-fA-F]{3}){1,2})\b/g, (match) => {
+        return `<span class="color-swatch" style="background:${match}"></span>${match}`;
+      });
+
+      // Color swatches — rgb/rgba
+      html = html.replace(/(rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\))/g, (match) => {
+        return `<span class="color-swatch" style="background:${match}"></span>${match}`;
+      });
+
+      // Linkify URLs + domain labels
+      html = html.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+        let domain = '';
+        try { domain = new URL(url).hostname.replace(/^www\./, ''); } catch { /* noop */ }
+        const domainLabel = domain ? `<span class="url-domain">${domain}</span>` : '';
+        return `<a href="${url}" target="_blank" rel="noopener">${url}</a>${domainLabel}`;
+      });
+
+      return html;
+    }
+
+    function timeAgo(ts) {
+      const diff = Date.now() - ts;
+      const sec = Math.floor(diff / 1000);
+      if (sec < 5) return 'just now';
+      if (sec < 60) return `${sec}s ago`;
+      const min = Math.floor(sec / 60);
+      if (min < 60) return `${min}m ago`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return `${hr}h ago`;
+      const days = Math.floor(hr / 24);
+      return `${days}d ago`;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function fileIconSvg() {
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    }
+
+    // --- Render ---
+    function renderClip(clip) {
+      if (pendingDelete && pendingDelete.id === clip.id) {
+        return `
+          <div class="clip-card pending-delete" data-id="${clip.id}">
+            <span class="undo-label">CLIP DELETED</span>
+            <button class="btn" onclick="undoDelete()">UNDO</button>
+          </div>
+        `;
+      }
+
+      const type = clip.type || 'text';
+
+      // Image clip
+      if (type === 'image' && clip.file) {
+        const src = '/uploads/' + clip.file.stored;
+        return `
+          <div class="clip-card" data-id="${clip.id}">
+            <img class="clip-image" src="${src}" alt="${clip.file.name}" onclick="openLightbox('${src}')" loading="lazy" />
+            <div class="clip-meta">
+              <span class="clip-time">${timeAgo(clip.createdAt)} · ${formatBytes(clip.file.size)}</span>
+              <button class="btn btn-sm" onclick="downloadFile('${clip.file.stored}', '${clip.file.name.replace(/'/g, "\\'")}')">DOWNLOAD</button>
+              <button class="btn btn-sm" onclick="copyClip('${clip.id}', this)">COPY URL</button>
+              <button class="pin-btn${clip.pinned ? ' active' : ''}" onclick="togglePin('${clip.id}')" title="${clip.pinned ? 'Unpin' : 'Pin'}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="${clip.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L12 22M12 2L8 6M12 2L16 6"/>
+                </svg>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteClip('${clip.id}')">DEL</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // File clip
+      if (type === 'file' && clip.file) {
+        return `
+          <div class="clip-card" data-id="${clip.id}">
+            <div class="file-card">
+              <div class="file-icon">${fileIconSvg()}</div>
+              <div class="file-info">
+                <div class="file-name">${clip.file.name}</div>
+                <div class="file-size">${formatBytes(clip.file.size)} · ${clip.file.mime}</div>
+              </div>
+              <button class="btn btn-sm" onclick="downloadFile('${clip.file.stored}', '${clip.file.name.replace(/'/g, "\\'")}')">DOWNLOAD</button>
+            </div>
+            <div class="clip-meta">
+              <span class="clip-time">${timeAgo(clip.createdAt)}</span>
+              <button class="btn btn-sm" onclick="copyClip('${clip.id}', this)">COPY URL</button>
+              <button class="pin-btn${clip.pinned ? ' active' : ''}" onclick="togglePin('${clip.id}')" title="${clip.pinned ? 'Unpin' : 'Pin'}">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="${clip.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L12 22M12 2L8 6M12 2L16 6"/>
+                </svg>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteClip('${clip.id}')">DEL</button>
+            </div>
+          </div>
+        `;
+      }
+
+      // Text clip — inline edit mode
+      if (editingId === clip.id) {
+        return `
+          <div class="clip-card" data-id="${clip.id}">
+            <textarea class="edit-textarea" onkeydown="handleEditKey(event, '${clip.id}')" onblur="setTimeout(() => saveEdit('${clip.id}'), 150)">${clip.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
+            <div class="edit-hint">CTRL+ENTER to save · ESC to cancel</div>
+          </div>
+        `;
+      }
+
+      // Text clip — normal
+      const isLong = clip.text && (clip.text.length > 300 || clip.text.split('\n').length > 5);
+      const isExpanded = expandedSet.has(clip.id);
+      const truncClass = (isLong && !isExpanded) ? ' truncated' : '';
+
+      return `
+        <div class="clip-card" data-id="${clip.id}">
+          <div class="clip-text${truncClass}" ondblclick="startEdit('${clip.id}')">${formatClipText(clip.text || '')}</div>
+          ${isLong ? `<button class="clip-expand" onclick="toggleExpand('${clip.id}')">${isExpanded ? '[COLLAPSE]' : '[EXPAND]'}</button>` : ''}
+          <div class="clip-meta">
+            <span class="clip-time">${timeAgo(clip.createdAt)}</span>
+            <button class="btn btn-sm" onclick="copyClip('${clip.id}', this)">COPY</button>
+            <button class="pin-btn${clip.pinned ? ' active' : ''}" onclick="togglePin('${clip.id}')" title="${clip.pinned ? 'Unpin' : 'Pin'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="${clip.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L12 22M12 2L8 6M12 2L16 6"/>
+              </svg>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteClip('${clip.id}')">DEL</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const filtered = clips.filter(c => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        if (c.text && c.text.toLowerCase().includes(q)) return true;
+        if (c.file && c.file.name.toLowerCase().includes(q)) return true;
+        return false;
+      });
+      const pinned = filtered.filter(c => c.pinned);
+      const recent = filtered.filter(c => !c.pinned);
+
+      if (filtered.length === 0) {
+        const msg = searchQuery ? '[NO MATCHES]' : '[EMPTY — PASTE SOMETHING]';
+        container.innerHTML = `<div class="empty-state"><span class="empty-label">${msg}</span></div>`;
+        return;
+      }
+
+      let html = '';
+
+      if (pinned.length) {
+        html += `<div class="section-label">Pinned — ${pinned.length}<span class="section-line"></span></div>`;
+        html += pinned.map(renderClip).join('');
+      }
+
+      if (recent.length) {
+        if (pinned.length) html += '<div style="margin-top:24px"></div>';
+        html += `<div class="section-label">Recent — ${recent.length}<span class="section-line"></span>`;
+        if (recent.length > 1) {
+          html += `<button class="btn-clear" onclick="clearAllUnpinned()">CLEAR ALL</button>`;
+        }
+        html += `</div>`;
+        html += recent.map(renderClip).join('');
+      }
+
+      const prevIds = renderedIds;
+      renderedIds = new Set(filtered.map(c => c.id));
+      container.innerHTML = html;
+
+      // Only animate clips that weren't in the previous render
+      for (const id of renderedIds) {
+        if (prevIds.has(id)) continue;
+        const el = container.querySelector(`.clip-card[data-id="${id}"]`);
+        if (el) el.classList.add('animate-in');
+      }
+    }
+
+    function toggleExpand(id) {
+      if (expandedSet.has(id)) expandedSet.delete(id);
+      else expandedSet.add(id);
+      render();
+    }
+
+    function handleEditKey(e, id) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelEdit();
+      }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        saveEdit(id);
+      }
+    }
+
+    // --- Status Bar ---
+    function updateStatusBar() {
+      const parts = [];
+      parts.push(connected ? 'CONNECTED' : 'RECONNECTING...');
+
+      if (deviceCount > 0) {
+        parts.push(`${deviceCount} DEVICE${deviceCount !== 1 ? 'S' : ''}`);
+      }
+
+      if (clips.length) {
+        parts.push(`${clips.length} CLIP${clips.length !== 1 ? 'S' : ''}`);
+        const bytes = new Blob([JSON.stringify(clips)]).size;
+        parts.push(formatBytes(bytes));
+      }
+
+      sseDot.classList.toggle('disconnected', !connected);
+      sseLabel.textContent = parts.join(' · ');
+    }
+
+    // --- SSE ---
+    function connectSSE() {
+      const es = new EventSource('/api/events');
+
+      es.onopen = () => {
+        connected = true;
+        updateStatusBar();
+      };
+
+      es.addEventListener('update', () => {
+        fetchClips();
+      });
+
+      es.addEventListener('devices', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          deviceCount = data.count;
+          updateStatusBar();
+        } catch { /* noop */ }
+      });
+
+      es.onerror = () => {
+        connected = false;
+        updateStatusBar();
+      };
+    }
+
+    // --- Theme ---
+    function initTheme() {
+      const saved = localStorage.getItem('clipbox-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+      themeToggle.textContent = saved === 'dark' ? 'LIGHT' : 'DARK';
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('clipbox-theme', next);
+      themeToggle.textContent = next === 'dark' ? 'LIGHT' : 'DARK';
+    });
+
+    // --- QR Toggle ---
+    let qrLoaded = false;
+    qrToggle.addEventListener('click', () => {
+      const open = qrSection.classList.toggle('visible');
+      qrToggle.classList.toggle('active', open);
+      if (open && !qrLoaded) {
+        qrImg.src = '/api/qr';
+        const url = window.location.origin;
+        qrUrl.textContent = url;
+        qrLoaded = true;
+      }
+    });
+
+    qrUrl.addEventListener('click', () => {
+      const text = qrUrl.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        qrUrl.textContent = '[COPIED]';
+        setTimeout(() => { qrUrl.textContent = text; }, 1000);
+      }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        qrUrl.textContent = '[COPIED]';
+        setTimeout(() => { qrUrl.textContent = text; }, 1000);
+      });
+    });
+
+    // --- Drag & Drop ---
+    let dragCounter = 0;
+
+    inputArea.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      dropOverlay.classList.add('active');
+    });
+
+    inputArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) {
+        dragCounter = 0;
+        dropOverlay.classList.remove('active');
+      }
+    });
+
+    inputArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    inputArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      dropOverlay.classList.remove('active');
+      const files = e.dataTransfer.files;
+      if (files.length) uploadFile(files[0]);
+    });
+
+    // --- Upload Button ---
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) {
+        uploadFile(fileInput.files[0]);
+        fileInput.value = '';
+      }
+    });
+
+    // --- Text Input Events ---
+    clipInput.addEventListener('input', () => {
+      const len = clipInput.value.length;
+      if (len) {
+        charCount.textContent = `${len} CHARS`;
+        charCount.style.display = '';
+      } else {
+        charCount.textContent = '';
+        charCount.style.display = 'none';
+      }
+    });
+
+    clipInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        addClip();
+      }
+    });
+
+    // Paste handler — detect images vs text
+    clipInput.addEventListener('paste', (e) => {
+      const items = e.clipboardData?.items;
+      if (items) {
+        for (const item of items) {
+          if (item.type.startsWith('image/')) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            if (file) uploadFile(file);
+            return;
+          }
+        }
+      }
+
+      // Text paste — auto-save if empty
+      const wasEmpty = !clipInput.value.trim();
+      if (!wasEmpty) return;
+      clearTimeout(pasteTimer);
+      pasteTimer = setTimeout(() => {
+        if (clipInput.value.trim()) addClip(true);
+      }, 300);
+    });
+
+    addBtn.addEventListener('click', () => addClip());
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      render();
+    });
+
+    // Global keyboard
+    document.addEventListener('keydown', (e) => {
+      if (!dialogResolver && !editingId) return;
+      if (dialogResolver && e.key === 'Escape') closeDialog(false);
+    });
+
+    // --- Device Tag ---
+    deviceTag.textContent = /Mobi|Android/i.test(navigator.userAgent) ? 'MOBILE' : 'DESKTOP';
+
+    // --- Auto-refresh timestamps (without full re-render) ---
+    setInterval(() => {
+      for (const clip of clips) {
+        const card = container.querySelector(`.clip-card[data-id="${clip.id}"]`);
+        if (!card) continue;
+        const timeEl = card.querySelector('.clip-time');
+        if (!timeEl) continue;
+        // Preserve suffix like " · 45.0 KB" for image/file clips
+        const text = timeEl.textContent;
+        const sepIdx = text.indexOf(' · ');
+        const suffix = sepIdx !== -1 ? text.slice(sepIdx) : '';
+        timeEl.textContent = timeAgo(clip.createdAt) + suffix;
+      }
+    }, 30000);
+
+    // --- Init ---
+    initTheme();
+    fetchClips();
+    connectSSE();
+  </script>
+</body>
+</html>

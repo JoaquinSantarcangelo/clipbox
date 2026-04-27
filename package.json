@@ -1,0 +1,9 @@
+{
+  "name": "clipbox",
+  "version": "1.0.0",
+  "description": "Cross-device clipboard — zero dependencies, local network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
