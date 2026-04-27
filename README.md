@@ -447,17 +447,16 @@ The server implements a minimal mDNS responder using Node's built-in `dgram` mod
 ```mermaid
 sequenceDiagram
     participant Phone
-    participant Network as Multicast 224.0.0.251:5353
+    participant Network as Multicast 224.0.0.251 port 5353
     participant Server as ClipBox Server
 
-    Note over Server: Startup: sends gratuitous<br/>A record announcement
-    Server->>Network: clipbox.local → 192.168.1.42
-
+    Note over Server: Startup: sends gratuitous A record announcement
+    Server->>Network: clipbox.local A 192.168.1.42
     Phone->>Network: DNS Query: clipbox.local?
-    Network->>Server: (multicast received)
-    Server->>Network: DNS Response: clipbox.local → 192.168.1.42
-    Network->>Phone: (multicast received)
-    Phone->>Server: HTTP GET http://clipbox.local:3377
+    Network->>Server: multicast received
+    Server->>Network: DNS Response: clipbox.local A 192.168.1.42
+    Network->>Phone: multicast received
+    Phone->>Server: HTTP GET clipbox.local:3377
 ```
 
 1. Binds to UDP multicast port `5353` with `SO_REUSEADDR` (shares port with other mDNS services)
@@ -498,12 +497,12 @@ sequenceDiagram
     participant Server
     participant Phone
 
-    Laptop->>Server: POST /api/clips {text: "hello"}
+    Laptop->>Server: POST /api/clips with text payload
     Server->>Server: Save to clips.json
-    Server-->>Laptop: 201 {id, text, ...}
+    Server-->>Laptop: 201 Created with clip object
     Server-->>Phone: SSE event: update
     Phone->>Server: GET /api/clips
-    Server-->>Phone: [all clips]
+    Server-->>Phone: JSON array of all clips
 ```
 
 Every mutation (add, delete, pin, edit, clear) triggers an SSE broadcast. All connected clients re-fetch the full clip list, ensuring consistency without WebSocket complexity.
@@ -515,15 +514,16 @@ sequenceDiagram
     participant Browser
     participant Server
     participant Disk
+    participant All as All Clients
 
-    Browser->>Browser: FileReader.readAsDataURL()
-    Browser->>Browser: Strip "data:mime;base64," prefix
-    Browser->>Server: POST /api/clips {file: {data, name, mime}}
-    Server->>Server: Buffer.from(data, 'base64')
-    Server->>Server: Validate size ≤ 10MB
-    Server->>Disk: Write to data/uploads/{id}.{ext}
+    Browser->>Browser: FileReader.readAsDataURL
+    Browser->>Browser: Strip data:mime base64 prefix
+    Browser->>Server: POST /api/clips with file payload
+    Server->>Server: Buffer.from base64 decode
+    Server->>Server: Validate size max 10MB
+    Server->>Disk: Write to data/uploads/clipId.ext
     Server->>Disk: Append clip metadata to clips.json
-    Server-->>Browser: 201 {id, type, file: {...}}
+    Server-->>Browser: 201 Created with clip object
     Server-->>All: SSE broadcast
 ```
 
