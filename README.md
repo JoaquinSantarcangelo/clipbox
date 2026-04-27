@@ -35,22 +35,38 @@ ClipBox is the fastest path between any two devices on the same network. No clou
 
 ## Quick Start
 
+### Node.js
+
 ```bash
-git clone <repo-url> clipbox
+git clone https://github.com/JoaquinSantarcangelo/clipbox.git
 cd clipbox
 node server.js
 ```
 
-```
-  ┌──────────────────────────────────────┐
-  │           C L I P B O X              │
-  ├──────────────────────────────────────┤
-  │  Local:   http://localhost:3377      │
-  │  Network: http://192.168.1.42:3377  │
-  └──────────────────────────────────────┘
+### Docker
+
+```bash
+docker compose up -d
 ```
 
-Open the **Network URL** on any device connected to the same WiFi. Or tap **QR** in the header and scan with your phone.
+### Docker (one-liner, no clone needed)
+
+```bash
+docker run -d --network host -v clipbox-data:/app/data --name clipbox ghcr.io/joaquinsantarcangelo/clipbox
+```
+
+```
+  ┌──────────────────────────────────────────┐
+  │             C L I P B O X                │
+  ├──────────────────────────────────────────┤
+  │  Local:   http://localhost:3377          │
+  │  Network: http://192.168.1.42:3377      │
+  │  LAN:     http://clipbox.local:3377     │
+  └──────────────────────────────────────────┘
+```
+
+Open **http://clipbox.local:3377** on any device connected to the same WiFi.
+Or tap **QR** in the header and scan with your phone.
 
 ---
 
@@ -101,10 +117,13 @@ Open the **Network URL** on any device connected to the same WiFi. Or tap **QR**
 
 ```
 clipbox/
-├── server.js              # HTTP server — API, static files, SSE, QR, uploads
+├── server.js              # HTTP server — API, SSE, QR, mDNS, file handling
 ├── public/
 │   ├── index.html         # Single-file SPA (HTML + CSS + JS)
 │   └── manifest.json      # PWA manifest for home screen install
+├── Dockerfile             # Alpine-based container image
+├── docker-compose.yml     # One-command deployment
+├── .dockerignore
 ├── data/                  # Auto-created at startup
 │   ├── clips.json         # Persisted clip metadata
 │   └── uploads/           # Uploaded files stored by clip ID
@@ -335,6 +354,111 @@ All configuration is via constants at the top of `server.js`:
 | `MAX_FILE_BYTES` | `10 MB` | Maximum file size per upload |
 | `MAX_BODY_BYTES` | `15 MB` | Maximum HTTP body size (accounts for base64 overhead) |
 | `DATA_DIR` | `./data` | Directory for clips.json and uploads |
+| `MDNS_HOST` | `clipbox` | mDNS hostname (resolves as `{value}.local`) |
+
+All can be overridden via environment variables: `PORT=8080 MDNS_HOST=mybox node server.js`
+
+---
+
+## Docker
+
+### Build and run
+
+```bash
+docker compose up -d
+```
+
+This builds the image, starts the container with host networking (for mDNS), and persists data to a named volume.
+
+### Without Compose
+
+```bash
+docker build -t clipbox .
+docker run -d --network host -v clipbox-data:/app/data --name clipbox clipbox
+```
+
+### Mac / Windows Docker Desktop
+
+`network_mode: host` is Linux-only. On Docker Desktop, use port mapping instead:
+
+```yaml
+# docker-compose.yml
+services:
+  clipbox:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3377:3377"
+    volumes:
+      - clipbox-data:/app/data
+```
+
+> **Note:** mDNS (`clipbox.local`) won't work through Docker Desktop's network layer. Use the QR code or IP address instead.
+
+### Custom hostname
+
+```bash
+MDNS_HOST=office-clipboard docker compose up -d
+# → http://office-clipboard.local:3377
+```
+
+### Persistent data
+
+Clips and uploaded files are stored in the `/app/data` volume. Data survives container restarts, rebuilds, and upgrades:
+
+```bash
+docker compose down          # stop — data preserved
+docker compose up -d --build # rebuild — data preserved
+docker volume rm clipbox-data # ⚠️ this deletes all clips and files
+```
+
+---
+
+## mDNS (Local Network Discovery)
+
+ClipBox broadcasts itself on the local network as **`clipbox.local`** using mDNS (the same protocol behind Apple Bonjour and Linux Avahi). Any device on the same WiFi can reach it at:
+
+```
+http://clipbox.local:3377
+```
+
+No IP address to remember. No DNS server to configure.
+
+### How it works
+
+The server implements a minimal mDNS responder using Node's built-in `dgram` module (zero dependencies):
+
+1. Binds to UDP multicast port `5353` (shared with other mDNS services via `SO_REUSEADDR`)
+2. Listens for DNS queries asking for `clipbox.local`
+3. Responds with an A record pointing to the server's LAN IP
+4. Sends a gratuitous announcement on startup so devices discover it immediately
+
+### Compatibility
+
+| Platform | mDNS resolves? |
+|----------|---------------|
+| macOS / iOS | Yes — built-in Bonjour |
+| Windows 10/11 | Yes — built-in mDNS client |
+| Android | Partial — works in Chrome, not all apps |
+| Linux | Yes — if `avahi-daemon` or `systemd-resolved` is running |
+| Docker (host network) | Yes |
+| Docker Desktop (port mapping) | No — use IP or QR |
+
+### Custom hostname
+
+```bash
+MDNS_HOST=workshop node server.js
+# → http://workshop.local:3377
+```
+
+### Troubleshooting mDNS
+
+| Problem | Solution |
+|---------|----------|
+| `clipbox.local` doesn't resolve | Ensure both devices are on the same network segment |
+| Port 5353 permission denied | Run with `sudo` or skip mDNS (server still works on IP) |
+| Conflict with existing service | Change hostname: `MDNS_HOST=myclips node server.js` |
+| Android can't resolve `.local` | Use the QR code or IP address instead |
 
 ---
 

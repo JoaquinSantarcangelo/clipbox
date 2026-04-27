@@ -1,0 +1,22 @@
+services:
+  clipbox:
+    build: .
+    restart: unless-stopped
+    network_mode: host          # Required for mDNS (clipbox.local) + LAN discovery
+    volumes:
+      - clipbox-data:/app/data
+    environment:
+      - PORT=3377
+      - MDNS_HOST=clipbox       # Change to customize the .local hostname
+
+    # --- Mac / Windows Docker Desktop ---
+    # network_mode: host doesn't work on Docker Desktop.
+    # Comment out network_mode and uncomment ports instead:
+    #
+    # ports:
+    #   - "3377:3377"
+    #
+    # Note: mDNS won't work — use the IP address or QR code.
+
+volumes:
+  clipbox-data:

@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const dgram = require('dgram');
 
 const PORT = process.env.PORT || 3377;
 const DATA_DIR = path.join(__dirname, 'data');
@@ -606,6 +607,85 @@ function interleave(dataCodewords, ecBlocks, numBlocks, totalDataCW, ecPerBlock)
   return result;
 }
 
+// --- mDNS Responder (clipbox.local) ---
+
+const MDNS_HOST = process.env.MDNS_HOST || 'clipbox';
+const MDNS_PORT = 5353;
+const MDNS_ADDR = '224.0.0.251';
+
+function encodeDNSName(name) {
+  const parts = name.split('.');
+  const bufs = [];
+  for (const p of parts) {
+    bufs.push(Buffer.from([p.length]));
+    bufs.push(Buffer.from(p, 'ascii'));
+  }
+  bufs.push(Buffer.from([0]));
+  return Buffer.concat(bufs);
+}
+
+function readDNSName(buf, offset) {
+  const labels = [];
+  while (offset < buf.length && buf[offset] !== 0) {
+    if ((buf[offset] & 0xC0) === 0xC0) break;
+    const len = buf[offset++];
+    if (offset + len > buf.length) break;
+    labels.push(buf.slice(offset, offset + len).toString('ascii'));
+    offset += len;
+  }
+  return labels.join('.').toLowerCase();
+}
+
+function buildAResponse(id, nameBytes, ipOctets) {
+  const header = Buffer.alloc(12);
+  header.writeUInt16BE(id, 0);
+  header.writeUInt16BE(0x8400, 2);    // QR=1 AA=1
+  header.writeUInt16BE(0, 4);         // QDCOUNT
+  header.writeUInt16BE(1, 6);         // ANCOUNT
+
+  const meta = Buffer.alloc(10);
+  meta.writeUInt16BE(1, 0);           // TYPE A
+  meta.writeUInt16BE(0x8001, 2);      // CLASS IN + cache-flush
+  meta.writeUInt32BE(120, 4);         // TTL 120s
+  meta.writeUInt16BE(4, 8);           // RDLENGTH
+
+  return Buffer.concat([header, nameBytes, meta, Buffer.from(ipOctets)]);
+}
+
+function startMDNS(ip) {
+  const targetName = `${MDNS_HOST}.local`;
+  const nameBytes = encodeDNSName(targetName);
+  const ipOctets = ip.split('.').map(Number);
+
+  const sock = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+
+  sock.on('message', (msg) => {
+    if (msg.length < 12) return;
+    if (msg.readUInt16BE(2) & 0x8000) return;       // ignore responses
+    if (msg.readUInt16BE(4) === 0) return;           // no questions
+
+    const name = readDNSName(msg, 12);
+    if (name !== targetName) return;
+
+    const res = buildAResponse(msg.readUInt16BE(0), nameBytes, ipOctets);
+    sock.send(res, 0, res.length, MDNS_PORT, MDNS_ADDR);
+  });
+
+  sock.on('error', () => { try { sock.close(); } catch {} });
+
+  sock.bind(MDNS_PORT, () => {
+    try {
+      sock.addMembership(MDNS_ADDR);
+      sock.setMulticastTTL(255);
+      // Announce ourselves on startup
+      const ann = buildAResponse(0, nameBytes, ipOctets);
+      sock.send(ann, 0, ann.length, MDNS_PORT, MDNS_ADDR);
+    } catch { try { sock.close(); } catch {} }
+  });
+
+  return sock;
+}
+
 // --- Server ---
 
 const server = http.createServer(async (req, res) => {
@@ -826,11 +906,29 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   const ip = getLocalIP();
-  console.log('\n  ┌──────────────────────────────────────┐');
-  console.log('  │           C L I P B O X              │');
-  console.log('  ├──────────────────────────────────────┤');
-  console.log(`  │  Local:   http://localhost:${PORT}      │`);
-  console.log(`  │  Network: http://${ip}:${PORT}  │`);
-  console.log('  └──────────────────────────────────────┘\n');
-  console.log(`  Max clips: ${MAX_CLIPS} | Files up to 10MB | Open the Network URL on any device.\n`);
+  const mdnsUrl = `http://${MDNS_HOST}.local:${PORT}`;
+  const networkUrl = `http://${ip}:${PORT}`;
+
+  let mdnsActive = false;
+  try {
+    startMDNS(ip);
+    mdnsActive = true;
+  } catch { /* mDNS unavailable */ }
+
+  const pad = (s, len) => s + ' '.repeat(Math.max(0, len - s.length));
+
+  console.log('\n  ┌──────────────────────────────────────────┐');
+  console.log('  │             C L I P B O X                │');
+  console.log('  ├──────────────────────────────────────────┤');
+  console.log(`  │  Local:   http://localhost:${PORT}          │`);
+  console.log(`  │  Network: ${pad(networkUrl, 30)}│`);
+  if (mdnsActive) {
+    console.log(`  │  LAN:     ${pad(mdnsUrl, 30)}│`);
+  }
+  console.log('  └──────────────────────────────────────────┘\n');
+
+  if (mdnsActive) {
+    console.log(`  Any device on this network can open ${mdnsUrl}`);
+  }
+  console.log(`  Max clips: ${MAX_CLIPS} | Files up to 10MB | QR code in the header.\n`);
 });
